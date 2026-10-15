@@ -4,7 +4,7 @@ See how your links appear on social platforms (Telegram, Discord, Slack, X, Face
 WhatsApp), with a metadata quality score and Open Graph / X Card / image inspection.
 
 A .NET 10 Blazor WebAssembly port of [linkpreview](https://github.com/KartikLabhshetwar/linkpreview),
-built on the [UrlPreviewParser](../UrlPreviewParser) library.
+built on the [UrlPreviewParser](https://github.com/kingsor/UrlPreviewParser) library.
 
 ## Run
 
