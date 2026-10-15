@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <meta name="theme-color" content="#252525" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Playfair+Display:ital@0;1&family=Public+Sans:wght@400;500;600;700&display=swap" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["UrlPreviewApp.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet @rendermode="InteractiveWebAssembly" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveWebAssembly" />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>

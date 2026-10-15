@@ -1,0 +1,98 @@
+@inject BrowserInterop Browser
+
+@if (!string.IsNullOrWhiteSpace(Url))
+{
+    <div class="stack-sm">
+        <div class="eyebrow">@Label</div>
+        <div class="image-frame @(IsFavicon ? "image-frame--favicon" : null)">
+            @if (_failed)
+            {
+                <span class="muted text-xs">Failed to load</span>
+            }
+            else
+            {
+                <img src="@Url" alt="@Label" @onerror="() => _failed = true" />
+            }
+        </div>
+        <div class="text-soft text-sm">
+            @if (_failed)
+            {
+                <span class="text-danger">• Image could not be loaded</span>
+            }
+            else if (_size is null)
+            {
+                <span>• Loading...</span>
+            }
+            else
+            {
+                <span class="@SizeClass">• @_size.Width × @_size.Height</span>
+                @if (RecommendedWidth > 0)
+                {
+                    <span class="muted"> (recommended: @RecommendedWidth×@RecommendedHeight)</span>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string? _measuredUrl;
+    private ImageSize? _size;
+    private bool _failed;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Url { get; set; }
+
+    [Parameter]
+    public int RecommendedWidth { get; set; }
+
+    [Parameter]
+    public int RecommendedHeight { get; set; }
+
+    [Parameter]
+    public bool IsFavicon { get; set; }
+
+    /// <summary>Green when exact, yellow when the aspect ratio matches within 2%, red otherwise.</summary>
+    private string? SizeClass
+    {
+        get
+        {
+            if (_size is null || RecommendedWidth <= 0 || RecommendedHeight <= 0 || _size.Height == 0)
+                return null;
+
+            if (_size.Width == RecommendedWidth && _size.Height == RecommendedHeight)
+                return "text-success";
+
+            var ratio = (double)_size.Width / _size.Height;
+            var recommendedRatio = (double)RecommendedWidth / RecommendedHeight;
+            return Math.Abs(ratio - recommendedRatio) / recommendedRatio <= 0.02 ? "text-warning" : "text-danger";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Url != _measuredUrl)
+        {
+            _size = null;
+            _failed = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Url is null || Url == _measuredUrl)
+            return;
+
+        var url = _measuredUrl = Url;
+        var size = await Browser.GetImageSizeAsync(url);
+        if (url != Url)
+            return;
+
+        _size = size;
+        _failed = size is null;
+        StateHasChanged();
+    }
+}

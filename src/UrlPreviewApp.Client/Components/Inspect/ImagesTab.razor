@@ -1,0 +1,21 @@
+<div class="stack-lg narrow">
+    <ImageSizePreview Label="Open Graph"
+                      Url="@Metadata.OgImage"
+                      RecommendedWidth="MetadataLimits.OgImageWidth"
+                      RecommendedHeight="MetadataLimits.OgImageHeight" />
+    <ImageSizePreview Label="X"
+                      Url="@(Metadata.TwitterImage ?? Metadata.OgImage)"
+                      RecommendedWidth="MetadataLimits.TwitterImageWidth"
+                      RecommendedHeight="MetadataLimits.TwitterImageHeight" />
+    <ImageSizePreview Label="Favicon" Url="@Metadata.Favicon" IsFavicon />
+
+    @if (Metadata.OgImage is null && Metadata.TwitterImage is null && Metadata.Favicon is null)
+    {
+        <p class="muted">No images found.</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+}

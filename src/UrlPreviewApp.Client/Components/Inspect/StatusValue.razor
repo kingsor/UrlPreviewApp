@@ -1,0 +1,23 @@
+@if (!Found)
+{
+    <NotSet Text="Not found" />
+}
+else if (UrlNormalizer.IsHttpUrl(LinkUrl))
+{
+    <span class="link-value">
+        <a class="text-success" href="@LinkUrl" target="_blank" rel="noopener noreferrer">Found</a>
+        <Icon Name="external" Class="icon--xs muted" />
+    </span>
+}
+else
+{
+    <span class="text-success">Found</span>
+}
+
+@code {
+    [Parameter]
+    public bool Found { get; set; }
+
+    [Parameter]
+    public string? LinkUrl { get; set; }
+}

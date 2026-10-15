@@ -1,0 +1,53 @@
+@implements IDisposable
+@inject BrowserInterop Browser
+
+<button type="button"
+        class="@(Label is null ? "icon-button copy-button" : "button button--outline button--sm") @(_copied ? "is-copied" : null) @Class"
+        title="Copy"
+        aria-label="@(Label ?? "Copy")"
+        @onclick="CopyAsync">
+    <Icon Name="@(_copied ? "check" : "copy")" />
+    @if (Label is not null)
+    {
+        <span>@(_copied ? "Copied!" : Label)</span>
+    }
+</button>
+
+@code {
+    private bool _copied;
+    private CancellationTokenSource? _reset;
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private async Task CopyAsync()
+    {
+        if (!await Browser.CopyTextAsync(Text))
+            return;
+
+        _reset?.Cancel();
+        _reset = new CancellationTokenSource();
+        var token = _reset.Token;
+
+        _copied = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), token);
+            _copied = false;
+        }
+        catch (TaskCanceledException)
+        {
+            // A newer copy restarted the timer.
+        }
+    }
+
+    public void Dispose() => _reset?.Cancel();
+}

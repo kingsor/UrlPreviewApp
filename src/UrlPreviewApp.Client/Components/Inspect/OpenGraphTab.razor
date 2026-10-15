@@ -1,0 +1,24 @@
+<div class="stack-lg narrow">
+    <SectionCard Title="Open Graph">
+        <MetadataField Label="Title">
+            <TextWithCount Text="@Metadata.OgTitle" Max="MetadataLimits.OgTitleMaxChars" />
+        </MetadataField>
+        <MetadataField Label="Description">
+            <TextWithCount Text="@Metadata.OgDescription" Max="MetadataLimits.OgDescriptionMaxChars" />
+        </MetadataField>
+        <MetadataField Label="Image">
+            <ImageValue Url="@Metadata.OgImage" Alt="Open Graph image" />
+        </MetadataField>
+        <MetadataField Label="Type" Value="@Metadata.OgType" />
+        <MetadataField Label="URL">
+            <LinkValue Url="@Metadata.OgUrl" />
+        </MetadataField>
+        <MetadataField Label="Site Name" Value="@Metadata.OgSiteName" />
+        <MetadataField Label="Locale" Value="@Metadata.OgLocale" />
+    </SectionCard>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+}

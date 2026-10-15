@@ -1,0 +1,21 @@
+<div class="stack-lg narrow">
+    <SectionCard Title="X Card">
+        <MetadataField Label="Card Type" Value="@Metadata.TwitterCard" />
+        <MetadataField Label="Title">
+            <TextWithCount Text="@Metadata.TwitterTitle" Max="MetadataLimits.TwitterTitleMaxChars" />
+        </MetadataField>
+        <MetadataField Label="Description">
+            <TextWithCount Text="@Metadata.TwitterDescription" Max="MetadataLimits.TwitterDescriptionMaxChars" />
+        </MetadataField>
+        <MetadataField Label="Image">
+            <ImageValue Url="@(Metadata.TwitterImage ?? Metadata.OgImage)" Alt="X card image" />
+        </MetadataField>
+        <MetadataField Label="Site" Value="@Metadata.TwitterSite" />
+        <MetadataField Label="Creator" Value="@Metadata.TwitterCreator" />
+    </SectionCard>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+}

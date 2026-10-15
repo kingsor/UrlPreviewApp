@@ -1,0 +1,87 @@
+@{
+    var content = PreviewResolver.Resolve(Metadata, Url, Theme);
+    var hasImage = content.Image is not null && !_imageFailed;
+}
+
+<article class="preview @Theme.CssClass @(Theme.Layout == PreviewLayout.CompactIcon ? "preview--compact" : null)"
+         style="--title-lines: @Theme.TitleLines; --description-lines: @Theme.DescriptionLines">
+    @if (Theme.Layout == PreviewLayout.LargeImage)
+    {
+        <div class="preview__media">
+            @if (hasImage)
+            {
+                @if (!_imageLoaded)
+                {
+                    <div class="preview__spinner"><span class="spinner"></span></div>
+                }
+                <img @key="content.Image" src="@content.Image" alt="@content.Title"
+                     class="@(_imageLoaded ? "is-loaded" : null)"
+                     @onload="() => _imageLoaded = true"
+                     @onerror="() => _imageFailed = true" />
+            }
+            else
+            {
+                <Icon Name="image-off" Class="icon--lg preview__placeholder" />
+            }
+        </div>
+    }
+
+    <div class="preview__body">
+        @if (Theme.Layout == PreviewLayout.CompactIcon)
+        {
+            <div class="preview__site-row">
+                <div class="preview__thumb">
+                    @if (hasImage)
+                    {
+                        <img @key="content.Image" src="@content.Image" alt=""
+                             class="@(_imageLoaded ? "is-loaded" : null)"
+                             @onload="() => _imageLoaded = true"
+                             @onerror="() => _imageFailed = true" />
+                    }
+                    else
+                    {
+                        <Icon Name="image-off" Class="icon--xs preview__placeholder" />
+                    }
+                </div>
+                <p class="preview__site">@content.SiteLabel</p>
+            </div>
+        }
+        else
+        {
+            <p class="preview__site @(Theme.UppercaseSiteLabel ? "is-upper" : null)">@content.SiteLabel</p>
+        }
+
+        <p class="preview__title">@content.Title</p>
+
+        @if (!string.IsNullOrWhiteSpace(content.Description))
+        {
+            <p class="preview__description">@content.Description</p>
+        }
+    </div>
+</article>
+
+@code {
+    private string? _lastImage;
+    private bool _imageLoaded;
+    private bool _imageFailed;
+
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Url { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public PlatformTheme Theme { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        var image = PreviewResolver.Resolve(Metadata, Url, Theme).Image;
+        if (image != _lastImage)
+        {
+            _lastImage = image;
+            _imageLoaded = false;
+            _imageFailed = false;
+        }
+    }
+}

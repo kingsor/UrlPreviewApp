@@ -1,0 +1,19 @@
+@if (string.IsNullOrWhiteSpace(Text))
+{
+    <NotSet />
+}
+else
+{
+    <div>
+        <div class="break-words">@Text</div>
+        <div class="field__count @(Text.Length > Max ? "is-over" : null)">@Text.Length / @Max chars</div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Text { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Max { get; set; }
+}

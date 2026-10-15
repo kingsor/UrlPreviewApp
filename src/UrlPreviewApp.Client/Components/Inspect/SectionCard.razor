@@ -1,0 +1,12 @@
+<section class="card section-card">
+    <h3 class="section-card__title">@Title</h3>
+    <div>@ChildContent</div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

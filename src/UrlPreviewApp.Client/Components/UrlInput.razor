@@ -1,0 +1,71 @@
+<div class="url-input">
+    <form class="url-input__row" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+        <input @ref="_input"
+               class="url-input__field"
+               type="text"
+               inputmode="url"
+               aria-label="URL to preview"
+               placeholder="enter a url"
+               value="@Value"
+               @oninput="OnInput"
+               disabled="@Loading"
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false" />
+
+        @if (Loading)
+        {
+            <Icon Name="loader" Class="icon--md spin muted" />
+        }
+        else if (!string.IsNullOrEmpty(Value))
+        {
+            <button type="button" class="icon-button" title="Clear (Esc)" aria-label="Clear" @onclick="OnClear">
+                <Icon Name="x" />
+            </button>
+            <button type="button" class="icon-button" title="Refresh" aria-label="Refresh" @onclick="OnRefresh">
+                <Icon Name="refresh" />
+            </button>
+        }
+    </form>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <p class="url-input__error"><span class="dot"></span>@Error</p>
+    }
+</div>
+
+@code {
+    private ElementReference _input;
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnClear { get; set; }
+
+    [Parameter]
+    public EventCallback OnRefresh { get; set; }
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    public ValueTask FocusAsync() => _input.FocusAsync();
+
+    private Task OnInput(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty);
+
+    private async Task SubmitAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Value))
+            await OnSubmit.InvokeAsync(Value);
+    }
+}

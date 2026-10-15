@@ -1,0 +1,35 @@
+@if (string.IsNullOrWhiteSpace(Url))
+{
+    <NotSet />
+}
+else if (_failed)
+{
+    <span class="muted">Failed to load</span>
+}
+else
+{
+    <img class="@(Favicon ? "image-value image-value--favicon" : "image-value")" src="@Url" alt="@Alt" @onerror="() => _failed = true" />
+}
+
+@code {
+    private string? _lastUrl;
+    private bool _failed;
+
+    [Parameter]
+    public string? Url { get; set; }
+
+    [Parameter]
+    public string Alt { get; set; } = "Image";
+
+    [Parameter]
+    public bool Favicon { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Url != _lastUrl)
+        {
+            _lastUrl = Url;
+            _failed = false;
+        }
+    }
+}

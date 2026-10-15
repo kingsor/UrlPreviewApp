@@ -1,0 +1,262 @@
+@page "/"
+@implements IAsyncDisposable
+@inject IPageMetadataProvider MetadataProvider
+@inject RecentUrlsStore RecentUrls
+@inject BrowserInterop Browser
+
+<PageTitle>UrlPreviewApp · Test your links across platforms</PageTitle>
+<HeadContent>
+    <meta name="description" content="Preview how your links appear on Telegram, Discord, Slack, X, Facebook, LinkedIn and WhatsApp. Check metadata quality and image dimensions." />
+</HeadContent>
+
+<div class="stack-xl">
+    <div class="stack-sm">
+        <h1 class="brand">urlpreview</h1>
+        <p class="text-soft">See how your links appear on social platforms.</p>
+    </div>
+
+    <div class="stack-lg">
+        <UrlInput @ref="_urlInput"
+                  @bind-Value="_input"
+                  OnSubmit="SubmitAsync"
+                  OnClear="ClearAsync"
+                  OnRefresh="RefreshAsync"
+                  Loading="_loading"
+                  Error="@_error" />
+
+        @if (IsIdle)
+        {
+            <section class="stack-sm">
+                <p class="eyebrow">Try these</p>
+                <div class="link-list">
+                    @foreach (var example in ExampleUrls)
+                    {
+                        <button type="button" class="link-list__item" @onclick="() => SubmitAsync(example)">
+                            <span>›</span><span>@example</span>
+                        </button>
+                    }
+                </div>
+            </section>
+
+            <LocalhostGuide />
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="state state--loading">
+            <div class="loader"></div>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="state">
+            <div class="state__icon"><Icon Name="alert" Class="icon--lg" /></div>
+            <h2 class="state__title">Unable to fetch preview</h2>
+            <p class="muted state__message">@_error</p>
+            <button type="button" class="button button--outline" @onclick="ClearAsync">Try another URL</button>
+        </div>
+    }
+    else if (_metadata is not null && _currentUrl is not null)
+    {
+        <div class="stack-lg">
+            <TabStrip Items="ResultTabs" @bind-Active="_activeTab" />
+
+            @switch (_activeTab)
+            {
+                case "score":
+                    <ScoreDisplay Metadata="_metadata" />
+                    break;
+                case "previews":
+                    <div class="stack-lg">
+                        <TabStrip Items="PlatformTabs" @bind-Active="_activePlatform" />
+                        <PlatformPreview Metadata="_metadata" Url="_currentUrl" Theme="SelectedTheme" />
+                    </div>
+                    break;
+                case "basic":
+                    <BasicTab Metadata="_metadata" />
+                    break;
+                case "opengraph":
+                    <OpenGraphTab Metadata="_metadata" />
+                    break;
+                case "x":
+                    <TwitterTab Metadata="_metadata" />
+                    break;
+                case "images":
+                    <ImagesTab Metadata="_metadata" />
+                    break;
+                case "raw":
+                    <RawTab Metadata="_metadata" />
+                    break;
+            }
+        </div>
+    }
+
+    @if (IsIdle && _recent.Count > 0)
+    {
+        <section class="stack-sm recent">
+            <div class="row-between">
+                <p class="eyebrow">Recent</p>
+                <button type="button" class="eyebrow-button" @onclick="ClearRecentAsync">
+                    <Icon Name="x" Class="icon--xs" /><span>Clear</span>
+                </button>
+            </div>
+            <div class="link-list">
+                @foreach (var url in _recent)
+                {
+                    <button type="button" class="link-list__item" title="@url" @onclick="() => SubmitAsync(url)">
+                        <span class="muted">›</span><span>@UrlNormalizer.GetHostname(url)</span>
+                    </button>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    private static readonly string[] ExampleUrls = ["github.com", "dotnet.microsoft.com", "learn.microsoft.com"];
+
+    private static readonly IReadOnlyList<TabStrip.TabItem> ResultTabs =
+    [
+        new("score", "Score"),
+        new("previews", "Previews"),
+        new("basic", "Basic"),
+        new("opengraph", "Open Graph"),
+        new("x", "X"),
+        new("images", "Images"),
+        new("raw", "Raw"),
+    ];
+
+    private static readonly IReadOnlyList<TabStrip.TabItem> PlatformTabs =
+        PlatformThemes.All.Select(t => new TabStrip.TabItem(t.Platform.ToString(), t.Label)).ToList();
+
+    private UrlInput? _urlInput;
+    private string _input = string.Empty;
+    private string? _currentUrl;
+    private PageMetadata? _metadata;
+    private bool _loading;
+    private string? _error;
+    private string _activeTab = "score";
+    private string _activePlatform = nameof(Platform.Telegram);
+    private IReadOnlyList<string> _recent = [];
+    private CancellationTokenSource? _requestCts;
+    private DotNetObjectReference<Home>? _selfReference;
+    private IAsyncDisposable? _shortcuts;
+
+    /// <summary>Deep link: <c>/?url=example.com</c> previews the URL on load.</summary>
+    [SupplyParameterFromQuery(Name = "url")]
+    public string? UrlFromQuery { get; set; }
+
+    private bool IsIdle => _metadata is null && !_loading && _error is null;
+
+    private PlatformTheme SelectedTheme =>
+        PlatformThemes.Get(Enum.TryParse<Platform>(_activePlatform, out var platform) ? platform : Platform.Telegram);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        // Browser storage and keyboard listeners exist only once the component is interactive.
+        _recent = await RecentUrls.GetAsync();
+        _selfReference = DotNetObjectReference.Create(this);
+        _shortcuts = await Browser.RegisterShortcutsAsync(_selfReference);
+        StateHasChanged();
+
+        if (!string.IsNullOrWhiteSpace(UrlFromQuery))
+        {
+            await SubmitAsync(UrlFromQuery);
+            StateHasChanged();
+        }
+    }
+
+    private async Task SubmitAsync(string input)
+    {
+        if (!UrlNormalizer.TryNormalize(input, out var url))
+        {
+            _error = "Please enter a valid URL (for example example.com).";
+            _metadata = null;
+            return;
+        }
+
+        _requestCts?.Cancel();
+        _requestCts = new CancellationTokenSource();
+        var token = _requestCts.Token;
+
+        _input = url;
+        _currentUrl = url;
+        _metadata = null;
+        _error = null;
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await MetadataProvider.GetMetadataAsync(url, token);
+            if (token.IsCancellationRequested)
+                return;
+
+            if (result.Metadata is not null)
+            {
+                _metadata = result.Metadata;
+                _activeTab = "score";
+                _recent = await RecentUrls.AddAsync(url);
+            }
+            else
+            {
+                _error = result.Error;
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Superseded by a newer request or cleared.
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+                _loading = false;
+        }
+    }
+
+    private Task RefreshAsync() =>
+        string.IsNullOrWhiteSpace(_input) ? Task.CompletedTask : SubmitAsync(_input);
+
+    private Task ClearAsync()
+    {
+        _requestCts?.Cancel();
+        _input = string.Empty;
+        _currentUrl = null;
+        _metadata = null;
+        _error = null;
+        _loading = false;
+        return Task.CompletedTask;
+    }
+
+    private async Task ClearRecentAsync()
+    {
+        await RecentUrls.ClearAsync();
+        _recent = [];
+    }
+
+    [JSInvokable]
+    public async Task FocusInput()
+    {
+        if (_urlInput is not null)
+            await _urlInput.FocusAsync();
+    }
+
+    [JSInvokable]
+    public async Task ClearFromShortcut()
+    {
+        await ClearAsync();
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _requestCts?.Cancel();
+        if (_shortcuts is not null)
+            await _shortcuts.DisposeAsync();
+        _selfReference?.Dispose();
+    }
+}

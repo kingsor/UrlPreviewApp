@@ -1,0 +1,42 @@
+<section class="stack-sm">
+    <button type="button" class="disclosure" aria-expanded="@(_expanded ? "true" : "false")" @onclick="() => _expanded = !_expanded">
+        <span class="eyebrow">Localhost</span>
+        <Icon Name="chevron-down" Class="@(_expanded ? "rotate-180" : null)" />
+    </button>
+
+    @if (_expanded)
+    {
+        <div class="stack-sm guide">
+            <p class="text-soft">Test your local server using ngrok</p>
+
+            <div class="guide__step">
+                <div class="guide__label">1. Install</div>
+                <div class="code-row">
+                    <code>winget install ngrok.ngrok</code>
+                    <CopyButton Text="winget install ngrok.ngrok" />
+                </div>
+                <div class="guide__hint">macOS: <code class="inline-code">brew install ngrok</code> · or download it from ngrok.com</div>
+            </div>
+
+            <div class="guide__step">
+                <div class="guide__label">2. Start your local server (e.g. on port 5000)</div>
+            </div>
+
+            <div class="guide__step">
+                <div class="guide__label">3. Run tunnel</div>
+                <div class="code-row">
+                    <code>ngrok http 5000</code>
+                    <CopyButton Text="ngrok http 5000" />
+                </div>
+            </div>
+
+            <div class="guide__step">
+                <div class="guide__label">4. Copy the https URL from the output</div>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private bool _expanded = true;
+}

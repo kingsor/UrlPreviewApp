@@ -1,0 +1,39 @@
+<div class="stack-lg narrow">
+    <SectionCard Title="Essential">
+        <MetadataField Label="Favicon">
+            <ImageValue Url="@Metadata.Favicon" Alt="Favicon" Favicon />
+        </MetadataField>
+        <MetadataField Label="Title">
+            <TextWithCount Text="@Metadata.Title" Max="MetadataLimits.TitleMaxChars" />
+        </MetadataField>
+        <MetadataField Label="Description">
+            <TextWithCount Text="@Metadata.Description" Max="MetadataLimits.DescriptionMaxChars" />
+        </MetadataField>
+        <MetadataField Label="Canonical">
+            <LinkValue Url="@Metadata.Canonical" Italic />
+        </MetadataField>
+    </SectionCard>
+
+    <SectionCard Title="Technical">
+        <MetadataField Label="Language" Value="@Metadata.Language" />
+        <MetadataField Label="Charset" Value="@Metadata.Charset" />
+        <MetadataField Label="Viewport" Value="@Metadata.Viewport" />
+        <MetadataField Label="Robots" Value="@Metadata.Robots" />
+        <MetadataField Label="Theme color" Value="@Metadata.ThemeColor" />
+        <MetadataField Label="Generator" Value="@Metadata.Generator" />
+    </SectionCard>
+
+    <SectionCard Title="SEO Files">
+        <MetadataField Label="robots.txt">
+            <StatusValue Found="@(Metadata.RobotsFile is not null)" LinkUrl="@Metadata.RobotsFile" />
+        </MetadataField>
+        <MetadataField Label="sitemap.xml">
+            <StatusValue Found="@(Metadata.Sitemap is not null)" LinkUrl="@Metadata.Sitemap" />
+        </MetadataField>
+    </SectionCard>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+}

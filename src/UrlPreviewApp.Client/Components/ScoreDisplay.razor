@@ -1,0 +1,39 @@
+<div class="score fade-in">
+    <div class="score__ring">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="score__track" cx="50" cy="50" r="45" />
+            <circle class="score__value"
+                    cx="50" cy="50" r="45"
+                    style="--circumference: @Format(Circumference); stroke-dasharray: @Format(Circumference); stroke-dashoffset: @Format(_offset)" />
+        </svg>
+        <span class="score__number" aria-label="Score @_result.Score out of 100">@_result.Score</span>
+    </div>
+
+    <ul class="score__checks">
+        @for (var i = 0; i < _result.Checks.Count; i++)
+        {
+            var check = _result.Checks[i];
+            <li class="score__check @(check.Passed ? "is-pass" : "is-fail")" style="animation-delay: @(500 + i * 30)ms">
+                <Icon Name="@(check.Passed ? "check" : "x-circle")" />
+                <span>@check.Name</span>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    private const double Circumference = 2 * Math.PI * 45;
+    private ScoreResult _result = new(0, []);
+    private double _offset = Circumference;
+
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        _result = ScoreCalculator.Calculate(Metadata);
+        _offset = Circumference - _result.Score / 100d * Circumference;
+    }
+
+    private static string Format(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+}

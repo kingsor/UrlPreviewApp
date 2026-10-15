@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <!--
+      true  = reference the UrlPreviewParser sources in ..\UrlPreviewParser (default: version 1.1.0 is not on NuGet yet)
+      false = reference the UrlPreviewParser NuGet package ($(UrlPreviewParserVersion))
+    -->
+    <UseLocalUrlPreviewParser Condition="'$(UseLocalUrlPreviewParser)' == ''">false</UseLocalUrlPreviewParser>
+    <UrlPreviewParserVersion>1.1.0</UrlPreviewParserVersion>
+    <UrlPreviewParserProject>$(MSBuildThisFileDirectory)..\UrlPreviewParser\src\UrlPreviewParser\UrlPreviewParser.csproj</UrlPreviewParserProject>
+  </PropertyGroup>
+
+</Project>

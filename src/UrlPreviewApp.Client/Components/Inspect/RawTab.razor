@@ -1,0 +1,32 @@
+@using System.Text.Json
+
+<section class="card stack-md">
+    <div class="row-between">
+        <h3 class="card__title">Raw Metadata</h3>
+        <CopyButton Text="@(_format == "json" ? _json : _html)" Label="@(_format == "json" ? "Copy JSON" : "Copy HTML")" />
+    </div>
+
+    <div class="segmented" role="tablist">
+        <button type="button" role="tab" aria-selected="@(_format == "json" ? "true" : "false")"
+                class="segmented__item @(_format == "json" ? "is-active" : null)" @onclick='() => _format = "json"'>JSON</button>
+        <button type="button" role="tab" aria-selected="@(_format == "html" ? "true" : "false")"
+                class="segmented__item @(_format == "html" ? "is-active" : null)" @onclick='() => _format = "html"'>HTML</button>
+    </div>
+
+    <pre class="code-block">@(_format == "json" ? _json : _html)</pre>
+</section>
+
+@code {
+    private string _format = "json";
+    private string _json = string.Empty;
+    private string _html = string.Empty;
+
+    [Parameter, EditorRequired]
+    public PageMetadata Metadata { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        _json = JsonSerializer.Serialize(Metadata, IndentedJsonContext.Default.PageMetadata);
+        _html = HtmlTagGenerator.Generate(Metadata);
+    }
+}
