@@ -1,4 +1,4 @@
-<div class="stack-lg narrow">
+<MudStack Spacing="6" Class="narrow">
     <SectionCard Title="Essential">
         <MetadataField Label="Favicon">
             <ImageValue Url="@Metadata.Favicon" Alt="Favicon" Favicon />
@@ -31,7 +31,7 @@
             <StatusValue Found="@(Metadata.Sitemap is not null)" LinkUrl="@Metadata.Sitemap" />
         </MetadataField>
     </SectionCard>
-</div>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]

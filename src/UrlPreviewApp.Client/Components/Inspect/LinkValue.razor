@@ -5,8 +5,8 @@
 else if (UrlNormalizer.IsHttpUrl(Url))
 {
     <span class="link-value @(Italic ? "is-italic" : null)">
-        <a href="@Url" target="_blank" rel="noopener noreferrer">@Url</a>
-        <Icon Name="external" Class="icon--xs muted" />
+        <MudLink Href="@Url" Target="_blank" rel="noopener noreferrer" Color="Color.Inherit">@Url</MudLink>
+        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Secondary" Style="font-size: 0.875rem" />
     </span>
 }
 else

@@ -1,42 +1,42 @@
 <div class="url-input">
-    <form class="url-input__row" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
-        <input @ref="_input"
-               class="url-input__field"
-               type="text"
-               inputmode="url"
-               aria-label="URL to preview"
-               placeholder="enter a url"
-               value="@Value"
-               @oninput="OnInput"
-               disabled="@Loading"
-               autocomplete="off"
-               autocorrect="off"
-               autocapitalize="off"
-               spellcheck="false" />
+    <form class="d-flex align-center gap-1" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+        <MudTextField @ref="_field"
+                      T="string"
+                      Value="Value"
+                      ValueChanged="OnValueChanged"
+                      Immediate
+                      Variant="Variant.Text"
+                      Placeholder="enter a url"
+                      Disabled="Loading"
+                      Error="@(!string.IsNullOrEmpty(Error))"
+                      Class="flex-grow-1 mt-0"
+                      InputMode="InputMode.url"
+                      AutoFocus="false"
+                      spellcheck="false"
+                      autocomplete="off"
+                      autocorrect="off"
+                      autocapitalize="off"
+                      aria-label="URL to preview" />
 
         @if (Loading)
         {
-            <Icon Name="loader" Class="icon--md spin muted" />
+            <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Secondary" />
         }
         else if (!string.IsNullOrEmpty(Value))
         {
-            <button type="button" class="icon-button" title="Clear (Esc)" aria-label="Clear" @onclick="OnClear">
-                <Icon Name="x" />
-            </button>
-            <button type="button" class="icon-button" title="Refresh" aria-label="Refresh" @onclick="OnRefresh">
-                <Icon Name="refresh" />
-            </button>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" title="Clear (Esc)" aria-label="Clear" OnClick="OnClear" />
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" title="Refresh" aria-label="Refresh" OnClick="OnRefresh" />
         }
     </form>
 
     @if (!string.IsNullOrEmpty(Error))
     {
-        <p class="url-input__error"><span class="dot"></span>@Error</p>
+        <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-2">@Error</MudText>
     }
 </div>
 
 @code {
-    private ElementReference _input;
+    private MudTextField<string>? _field;
 
     [Parameter]
     public string Value { get; set; } = string.Empty;
@@ -59,9 +59,9 @@
     [Parameter]
     public string? Error { get; set; }
 
-    public ValueTask FocusAsync() => _input.FocusAsync();
+    public ValueTask FocusAsync() => _field?.FocusAsync() ?? ValueTask.CompletedTask;
 
-    private Task OnInput(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty);
+    private Task OnValueChanged(string? value) => ValueChanged.InvokeAsync(value ?? string.Empty);
 
     private async Task SubmitAsync()
     {

@@ -1,6 +1,6 @@
 <div class="field">
-    <div class="field__label">@Label</div>
-    <div class="field__value">
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="field__label">@Label</MudText>
+    <MudText Typo="Typo.body2" Class="field__value" HtmlTag="div">
         @if (ChildContent is not null)
         {
             @ChildContent
@@ -13,7 +13,7 @@
         {
             <NotSet />
         }
-    </div>
+    </MudText>
 </div>
 
 @code {

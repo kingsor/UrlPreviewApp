@@ -5,13 +5,13 @@
 else if (UrlNormalizer.IsHttpUrl(LinkUrl))
 {
     <span class="link-value">
-        <a class="text-success" href="@LinkUrl" target="_blank" rel="noopener noreferrer">Found</a>
-        <Icon Name="external" Class="icon--xs muted" />
+        <MudLink Href="@LinkUrl" Target="_blank" rel="noopener noreferrer" Color="Color.Success">Found</MudLink>
+        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Secondary" Style="font-size: 0.875rem" />
     </span>
 }
 else
 {
-    <span class="text-success">Found</span>
+    <MudText Inline Color="Color.Success">Found</MudText>
 }
 
 @code {

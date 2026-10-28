@@ -80,7 +80,7 @@ dotnet build -p:UseLocalUrlPreviewParser=false
 ## License and credits
 
 - UI and features ported from [linkpreview](https://github.com/KartikLabhshetwar/linkpreview),
-  MIT License, Copyright (c) 2026 Kartik Labhshetwar. The logo (`wwwroot/icon.svg`) and the loader animation come from that project.
+  MIT License, Copyright (c) 2026 Kartik Labhshetwar. The loader animation comes from that project; the logo (`wwwroot/logo.png`) is the UrlPreviewParser package icon.
 - Icons: [Lucide](https://lucide.dev), ISC License.
 
 ```

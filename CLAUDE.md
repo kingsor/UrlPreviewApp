@@ -13,7 +13,7 @@ dotnet test UrlPreviewApp.slnx --filter "FullyQualifiedName~UrlNormalizerTests.T
 dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreviewParser sources
 ```
 
-.NET 10, solution file is `UrlPreviewApp.slnx`. Styling is plain CSS (`src/UrlPreviewApp/wwwroot/app.css`, plus `MainLayout.razor.css`); there is no Node/Tailwind toolchain.
+.NET 10, solution file is `UrlPreviewApp.slnx`. UI components are **MudBlazor** (package referenced by the Client only; services registered in `AddUrlPreviewBrowserServices()`, CSS/JS linked in `App.razor`). Theme lives in `Client/Layout/AppTheme.cs` (light + dark palettes); the light/dark toggle is in `MainLayout.razor`, persisted by `ThemePreferenceStore` (localStorage, falls back to the system preference). `src/UrlPreviewApp/wwwroot/app.css` holds only custom styling (platform previews, score ring, loader, small tweaks); its `:root` tokens alias `--mud-palette-*` so they follow the theme. There is no Node/Tailwind toolchain.
 
 ## UrlPreviewParser reference
 

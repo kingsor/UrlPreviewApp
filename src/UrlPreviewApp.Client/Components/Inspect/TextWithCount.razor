@@ -6,7 +6,9 @@ else
 {
     <div>
         <div class="break-words">@Text</div>
-        <div class="field__count @(Text.Length > Max ? "is-over" : null)">@Text.Length / @Max chars</div>
+        <MudText Typo="Typo.caption" HtmlTag="div" Color="@(Text.Length > Max ? Color.Warning : Color.Secondary)" Class="mt-1">
+            @Text.Length / @Max chars
+        </MudText>
     </div>
 }
 

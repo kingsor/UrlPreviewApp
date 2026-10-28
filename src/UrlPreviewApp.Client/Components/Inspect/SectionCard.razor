@@ -1,7 +1,11 @@
-<section class="card section-card">
-    <h3 class="section-card__title">@Title</h3>
-    <div>@ChildContent</div>
-</section>
+<MudCard Outlined Class="section-card">
+    <MudCardHeader Class="pb-0">
+        <CardHeaderContent>
+            <MudText Typo="Typo.subtitle2" HtmlTag="h3">@Title</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent Class="pt-2">@ChildContent</MudCardContent>
+</MudCard>
 
 @code {
     [Parameter, EditorRequired]

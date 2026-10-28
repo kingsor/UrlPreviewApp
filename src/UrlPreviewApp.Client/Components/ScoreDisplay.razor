@@ -14,7 +14,7 @@
         {
             var check = _result.Checks[i];
             <li class="score__check @(check.Passed ? "is-pass" : "is-fail")" style="animation-delay: @(500 + i * 30)ms">
-                <Icon Name="@(check.Passed ? "check" : "x-circle")" />
+                <MudIcon Icon="@(check.Passed ? Icons.Material.Filled.Check : Icons.Material.Outlined.Cancel)" Size="Size.Small" />
                 <span>@check.Name</span>
             </li>
         }

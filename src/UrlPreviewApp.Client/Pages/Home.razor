@@ -9,13 +9,13 @@
     <meta name="description" content="Preview how your links appear on Telegram, Discord, Slack, X, Facebook, LinkedIn and WhatsApp. Check metadata quality and image dimensions." />
 </HeadContent>
 
-<div class="stack-xl">
-    <div class="stack-sm">
-        <h1 class="brand">urlpreview</h1>
-        <p class="text-soft">See how your links appear on social platforms.</p>
-    </div>
+<MudStack Spacing="8">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.h1" Class="brand">urlpreview</MudText>
+        <MudText Class="text-soft">See how your links appear on social platforms.</MudText>
+    </MudStack>
 
-    <div class="stack-lg">
+    <MudStack Spacing="6">
         <UrlInput @ref="_urlInput"
                   @bind-Value="_input"
                   OnSubmit="SubmitAsync"
@@ -26,21 +26,21 @@
 
         @if (IsIdle)
         {
-            <section class="stack-sm">
+            <MudStack Spacing="2">
                 <p class="eyebrow">Try these</p>
                 <div class="link-list">
                     @foreach (var example in ExampleUrls)
                     {
-                        <button type="button" class="link-list__item" @onclick="() => SubmitAsync(example)">
-                            <span>›</span><span>@example</span>
-                        </button>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Class="link-list__item" OnClick="() => SubmitAsync(example)">
+                            › @example
+                        </MudButton>
                     }
                 </div>
-            </section>
+            </MudStack>
 
             <LocalhostGuide />
         }
-    </div>
+    </MudStack>
 
     @if (_loading)
     {
@@ -51,15 +51,15 @@
     else if (_error is not null)
     {
         <div class="state">
-            <div class="state__icon"><Icon Name="alert" Class="icon--lg" /></div>
-            <h2 class="state__title">Unable to fetch preview</h2>
-            <p class="muted state__message">@_error</p>
-            <button type="button" class="button button--outline" @onclick="ClearAsync">Try another URL</button>
+            <div class="state__icon"><MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Large" /></div>
+            <MudText Typo="Typo.h6" HtmlTag="h2">Unable to fetch preview</MudText>
+            <MudText Color="Color.Secondary" Class="state__message">@_error</MudText>
+            <MudButton Variant="Variant.Outlined" OnClick="ClearAsync">Try another URL</MudButton>
         </div>
     }
     else if (_metadata is not null && _currentUrl is not null)
     {
-        <div class="stack-lg">
+        <MudStack Spacing="6">
             <TabStrip Items="ResultTabs" @bind-Active="_activeTab" />
 
             @switch (_activeTab)
@@ -68,10 +68,10 @@
                     <ScoreDisplay Metadata="_metadata" />
                     break;
                 case "previews":
-                    <div class="stack-lg">
+                    <MudStack Spacing="6">
                         <TabStrip Items="PlatformTabs" @bind-Active="_activePlatform" />
                         <PlatformPreview Metadata="_metadata" Url="_currentUrl" Theme="SelectedTheme" />
-                    </div>
+                    </MudStack>
                     break;
                 case "basic":
                     <BasicTab Metadata="_metadata" />
@@ -89,29 +89,30 @@
                     <RawTab Metadata="_metadata" />
                     break;
             }
-        </div>
+        </MudStack>
     }
 
     @if (IsIdle && _recent.Count > 0)
     {
-        <section class="stack-sm recent">
-            <div class="row-between">
+        <MudStack Spacing="2">
+            <MudDivider Class="mb-6" />
+            <div class="d-flex align-center justify-space-between gap-4">
                 <p class="eyebrow">Recent</p>
-                <button type="button" class="eyebrow-button" @onclick="ClearRecentAsync">
-                    <Icon Name="x" Class="icon--xs" /><span>Clear</span>
-                </button>
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Close" Class="eyebrow-button" OnClick="ClearRecentAsync">
+                    Clear
+                </MudButton>
             </div>
             <div class="link-list">
                 @foreach (var url in _recent)
                 {
-                    <button type="button" class="link-list__item" title="@url" @onclick="() => SubmitAsync(url)">
-                        <span class="muted">›</span><span>@UrlNormalizer.GetHostname(url)</span>
-                    </button>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Class="link-list__item" title="@url" OnClick="() => SubmitAsync(url)">
+                        <span class="muted">›</span>&nbsp;@UrlNormalizer.GetHostname(url)
+                    </MudButton>
                 }
             </div>
-        </section>
+        </MudStack>
     }
-</div>
+</MudStack>
 
 @code {
     private static readonly string[] ExampleUrls = ["github.com", "dotnet.microsoft.com", "learn.microsoft.com"];

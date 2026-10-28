@@ -1,4 +1,4 @@
-<div class="stack-lg narrow">
+<MudStack Spacing="6" Class="narrow">
     <SectionCard Title="X Card">
         <MetadataField Label="Card Type" Value="@Metadata.TwitterCard" />
         <MetadataField Label="Title">
@@ -13,7 +13,7 @@
         <MetadataField Label="Site" Value="@Metadata.TwitterSite" />
         <MetadataField Label="Creator" Value="@Metadata.TwitterCreator" />
     </SectionCard>
-</div>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]

@@ -1,16 +1,17 @@
-<div class="tabs" role="tablist">
+@* Tab headers only: the caller renders the content of the active tab. *@
+<MudTabs ActivePanelIndex="ActiveIndex"
+         ActivePanelIndexChanged="SelectAsync"
+         Elevation="0"
+         Color="Color.Transparent"
+         SliderColor="Color.Primary"
+         Border
+         Class="tabs"
+         TabPanelsClass="d-none">
     @foreach (var item in Items)
     {
-        var active = item.Key == Active;
-        <button type="button"
-                role="tab"
-                aria-selected="@(active ? "true" : "false")"
-                class="tabs__tab @(active ? "tabs__tab--active" : null)"
-                @onclick="() => SelectAsync(item.Key)">
-            @item.Label
-        </button>
+        <MudTabPanel @key="item.Key" Text="@item.Label" />
     }
-</div>
+</MudTabs>
 
 @code {
     [Parameter, EditorRequired]
@@ -22,7 +23,16 @@
     [Parameter]
     public EventCallback<string> ActiveChanged { get; set; }
 
-    private Task SelectAsync(string key) => key == Active ? Task.CompletedTask : ActiveChanged.InvokeAsync(key);
+    private int ActiveIndex => Math.Max(0, Items.Select(i => i.Key).ToList().IndexOf(Active));
+
+    private Task SelectAsync(int index)
+    {
+        if (index < 0 || index >= Items.Count)
+            return Task.CompletedTask;
+
+        var key = Items[index].Key;
+        return key == Active ? Task.CompletedTask : ActiveChanged.InvokeAsync(key);
+    }
 
     public sealed record TabItem(string Key, string Label);
 }

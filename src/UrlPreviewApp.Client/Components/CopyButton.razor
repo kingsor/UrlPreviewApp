@@ -1,17 +1,29 @@
 @implements IDisposable
 @inject BrowserInterop Browser
 
-<button type="button"
-        class="@(Label is null ? "icon-button copy-button" : "button button--outline button--sm") @(_copied ? "is-copied" : null) @Class"
-        title="Copy"
-        aria-label="@(Label ?? "Copy")"
-        @onclick="CopyAsync">
-    <Icon Name="@(_copied ? "check" : "copy")" />
-    @if (Label is not null)
-    {
-        <span>@(_copied ? "Copied!" : Label)</span>
-    }
-</button>
+@if (Label is null)
+{
+    <MudIconButton Icon="@(_copied ? Icons.Material.Filled.Check : Icons.Material.Outlined.ContentCopy)"
+                   Color="@(_copied ? Color.Success : Color.Default)"
+                   Size="Size.Small"
+                   Class="@($"copy-button {(_copied ? "is-copied" : null)} {Class}")"
+                   title="Copy"
+                   aria-label="Copy"
+                   OnClick="CopyAsync" />
+}
+else
+{
+    <MudButton Variant="Variant.Outlined"
+               Size="Size.Small"
+               Color="@(_copied ? Color.Success : Color.Default)"
+               StartIcon="@(_copied ? Icons.Material.Filled.Check : Icons.Material.Outlined.ContentCopy)"
+               Class="@Class"
+               title="Copy"
+               aria-label="@Label"
+               OnClick="CopyAsync">
+        @(_copied ? "Copied!" : Label)
+    </MudButton>
+}
 
 @code {
     private bool _copied;

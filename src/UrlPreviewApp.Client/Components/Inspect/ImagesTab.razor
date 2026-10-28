@@ -1,4 +1,4 @@
-<div class="stack-lg narrow">
+<MudStack Spacing="6" Class="narrow">
     <ImageSizePreview Label="Open Graph"
                       Url="@Metadata.OgImage"
                       RecommendedWidth="MetadataLimits.OgImageWidth"
@@ -11,9 +11,9 @@
 
     @if (Metadata.OgImage is null && Metadata.TwitterImage is null && Metadata.Favicon is null)
     {
-        <p class="muted">No images found.</p>
+        <MudText Color="Color.Secondary">No images found.</MudText>
     }
-</div>
+</MudStack>
 
 @code {
     [Parameter, EditorRequired]
