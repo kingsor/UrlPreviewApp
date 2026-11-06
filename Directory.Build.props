@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <!--
-      true  = reference the UrlPreviewParser sources in ..\UrlPreviewParser (default: version 1.1.0 is not on NuGet yet)
-      false = reference the UrlPreviewParser NuGet package ($(UrlPreviewParserVersion))
+      false = reference the UrlPreviewParser NuGet package ($(UrlPreviewParserVersion)) (default, used by CI and Docker)
+      true  = reference the UrlPreviewParser sources in ..\UrlPreviewParser (sibling repo)
     -->
     <UseLocalUrlPreviewParser Condition="'$(UseLocalUrlPreviewParser)' == ''">false</UseLocalUrlPreviewParser>
     <UrlPreviewParserVersion>1.1.0</UrlPreviewParserVersion>

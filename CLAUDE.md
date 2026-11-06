@@ -18,10 +18,8 @@ dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreview
 ## UrlPreviewParser reference
 
 `Directory.Build.props` switches how the server references the UrlPreviewParser library:
-- `UseLocalUrlPreviewParser=false` (actual default in the props file): NuGet `UrlPreviewParser` `$(UrlPreviewParserVersion)` (1.1.0).
+- `UseLocalUrlPreviewParser=false` (default): NuGet `UrlPreviewParser` `$(UrlPreviewParserVersion)` (1.1.0). CI and the Dockerfile rely on this.
 - `true`: project reference to `..\UrlPreviewParser\src\UrlPreviewParser` (sibling repo).
-
-The README claims the default is `true`; the props file is authoritative.
 
 ## Architecture
 

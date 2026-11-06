@@ -6,6 +6,8 @@ WhatsApp), with a metadata quality score and Open Graph / X Card / image inspect
 A .NET 10 Blazor WebAssembly port of [linkpreview](https://github.com/KartikLabhshetwar/linkpreview),
 built on the [UrlPreviewParser](https://github.com/kingsor/UrlPreviewParser) library.
 
+**Live app: https://urlpreview.neetpiq.com** (e.g. [https://urlpreview.neetpiq.com/?url=github.com](https://urlpreview.neetpiq.com/?url=github.com))
+
 ## Run
 
 ```bash
@@ -57,13 +59,21 @@ AngleSharp therefore never reaches the WebAssembly bundle.
 
 `Directory.Build.props` selects how the library is referenced:
 
-- `UseLocalUrlPreviewParser=true` (default): project reference to `..\UrlPreviewParser\src\UrlPreviewParser`.
-  Version 1.1.0 is required (new typed tags, URL resolution, options).
-- `UseLocalUrlPreviewParser=false`: `PackageReference` to `UrlPreviewParser` `$(UrlPreviewParserVersion)`.
+- `UseLocalUrlPreviewParser=false` (default): `PackageReference` to the NuGet package `UrlPreviewParser`
+  `$(UrlPreviewParserVersion)` (1.1.0 is required: new typed tags, URL resolution, options).
+  CI and the Docker image use this, so the sibling repo is not needed.
+- `UseLocalUrlPreviewParser=true`: project reference to `..\UrlPreviewParser\src\UrlPreviewParser`
+  (sibling repo), to work on the library and the app together.
 
 ```bash
-dotnet build -p:UseLocalUrlPreviewParser=false
+dotnet build -p:UseLocalUrlPreviewParser=true
 ```
+
+## Deploy
+
+Every push to `main` is built and tested by GitHub Actions and, if the tests pass, deployed to
+DigitalOcean App Platform (Docker image from `Dockerfile`, app spec in `.do/app.yaml`) at
+https://urlpreview.neetpiq.com. Setup and troubleshooting: [deploy.md](deploy.md) (Italian).
 
 ## Differences from the original
 
