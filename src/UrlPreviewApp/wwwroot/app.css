@@ -33,6 +33,8 @@ img { max-width: 100%; }
 /* ---------- Typography ---------- */
 .brand.mud-typography { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.875rem; line-height: 1.2; letter-spacing: 0; }
 .eyebrow { font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, var(--foreground) 70%, transparent); }
+/* Keeps the original casing, e.g. the "UrlPreviewApp" name in the footer. */
+.eyebrow--as-written { text-transform: none; }
 .text-soft { color: color-mix(in srgb, var(--foreground) 80%, transparent); }
 .muted { color: var(--muted-foreground); }
 .text-danger { color: var(--destructive); }

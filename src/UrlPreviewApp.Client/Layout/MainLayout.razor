@@ -12,12 +12,22 @@
             <a href="" class="shell__logo" aria-label="UrlPreviewApp home">
                 <img src="logo.png" alt="" width="40" height="40" class="@(_isDarkMode ? "shell__logo-img--dark" : null)" />
             </a>
-            <MudTooltip Text="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")">
-                <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
-                               Color="Color.Inherit"
-                               aria-label="Toggle light/dark theme"
-                               OnClick="ToggleThemeAsync" />
-            </MudTooltip>
+            <div class="d-flex align-center">
+                <MudTooltip Text="@(_isDarkMode ? "Switch to light theme" : "Switch to dark theme")">
+                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                                   Color="Color.Inherit"
+                                   aria-label="Toggle light/dark theme"
+                                   OnClick="ToggleThemeAsync" />
+                </MudTooltip>
+                <MudTooltip Text="Source code on GitHub">
+                    <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
+                                   Color="Color.Inherit"
+                                   Href="@RepositoryUrl"
+                                   Target="_blank"
+                                   Rel="noopener noreferrer"
+                                   aria-label="UrlPreviewApp source code on GitHub (opens in a new tab)" />
+                </MudTooltip>
+            </div>
         </MudContainer>
     </MudAppBar>
 
@@ -29,7 +39,7 @@
 
     <footer>
         <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-wrap align-center justify-space-between gap-4 py-4">
-            <span class="eyebrow">@DateTime.UtcNow.Year © UrlPreviewApp</span>
+            <span class="eyebrow eyebrow--as-written">@DateTime.UtcNow.Year © UrlPreviewApp</span>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Based on <MudLink Href="https://github.com/KartikLabhshetwar/linkpreview" Target="_blank" rel="noopener noreferrer" Color="Color.Inherit" Underline="Underline.Always">KartikLabhshetwar/linkpreview</MudLink> (MIT)
             </MudText>
@@ -44,17 +54,19 @@
 </div>
 
 @code {
+    private const string RepositoryUrl = "https://github.com/kingsor/UrlPreviewApp";
+
     private MudThemeProvider? _themeProvider;
 
-    // Dark while prerendering (the original look); the stored or system preference is applied once interactive.
-    private bool _isDarkMode = true;
+    // Light by default (also while prerendering); the user's stored choice is applied once interactive.
+    private bool _isDarkMode;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _themeProvider is null)
             return;
 
-        var isDarkMode = await ThemePreference.GetAsync() ?? await _themeProvider.GetSystemDarkModeAsync();
+        var isDarkMode = await ThemePreference.GetAsync() ?? false;
         if (isDarkMode != _isDarkMode)
         {
             _isDarkMode = isDarkMode;
