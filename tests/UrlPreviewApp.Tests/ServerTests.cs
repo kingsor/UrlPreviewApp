@@ -202,4 +202,15 @@ public class MetadataEndpointTests(WebApplicationFactory<Program> factory) : ICl
         Assert.Contains("not allowed", error!.Error);
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
     }
+
+    [Fact]
+    public async Task HealthCheck_ReturnsHealthy()
+    {
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/healthz");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+    }
 }

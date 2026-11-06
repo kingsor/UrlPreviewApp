@@ -44,6 +44,9 @@ builder.Services.AddScoped<MetadataService>();
 builder.Services.AddScoped<IPageMetadataProvider>(services => services.GetRequiredService<MetadataService>());
 builder.Services.AddUrlPreviewBrowserServices();
 
+// Liveness probe for the hosting platform (DigitalOcean App Platform health check).
+builder.Services.AddHealthChecks();
+
 builder.Services.ConfigureHttpJsonOptions(json => json.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
 
 builder.Services.AddRateLimiter(limiter =>
@@ -84,6 +87,7 @@ app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapHealthChecks("/healthz");
 app.MapMetadataEndpoint();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()

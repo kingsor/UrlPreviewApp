@@ -1,195 +1,144 @@
-# Deploy su Azure App Service con GitHub Actions
+# Deploy su DigitalOcean App Platform con GitHub Actions
 
-Ogni push sul branch `main` compila, testa e pubblica l'applicazione su **Azure App Service (Linux)** tramite il workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+Ogni push sul branch `main` compila e testa l'applicazione, poi la pubblica su **DigitalOcean App Platform** all'indirizzo **https://urlpreview.neetpiq.com**.
 
 ```
 git push main ──► GitHub Actions
-                   ├─ build:  restore → build → test → publish → artifact
-                   └─ deploy: login OIDC su Azure → azure/webapps-deploy → App Service
+                   ├─ build:  restore → build → test
+                   └─ deploy: digitalocean/app_action/deploy (applica .do/app.yaml)
+                                  └─► App Platform: clona il repo → docker build (Dockerfile) → rollout
 ```
 
-L'app è un host ASP.NET Core: serve il client Blazor WebAssembly (con prerendering) ed espone `GET /api/metadata`. Per questo serve un App Service e non Static Web Apps.
+| File | Ruolo |
+|---|---|
+| [`Dockerfile`](Dockerfile) | Immagine multi-stage: SDK .NET 10 per `dotnet publish`, runtime `aspnet:10.0`, utente non root, porta 8080. |
+| [`.do/app.yaml`](.do/app.yaml) | App spec: regione, servizio, porta, health check `/healthz`, variabili d'ambiente, dominio. |
+| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | CI (build + test) e, se passa, deploy su App Platform. |
 
-Il login da GitHub ad Azure usa **OpenID Connect** (credenziale federata): nel repository non ci sono password né publish profile.
+L'app è un host ASP.NET Core: serve il client Blazor WebAssembly (con prerendering) ed espone `GET /api/metadata`, quindi serve un **servizio** (container) e non uno static site. App Platform non ha un buildpack .NET 10, per questo si usa il Dockerfile.
+
+In `.do/app.yaml` il servizio ha `deploy_on_push: false`: App Platform non fa deploy da solo a ogni push, lo fa solo il workflow **dopo** che i test sono passati.
 
 ---
 
 ## 1. Prerequisiti
 
-- Una sottoscrizione Azure, con il permesso di creare risorse e registrazioni di app in Entra ID.
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) (`az login`).
-- Diritti di amministratore sul repository GitHub `kingsor/UrlPreviewApp`, per configurare secrets ed environment.
-- Facoltativa: [GitHub CLI](https://cli.github.com/) (`gh auth login`), per impostare i secrets dalla riga di comando.
+- Un account DigitalOcean con un metodo di pagamento (il servizio `apps-s-1vcpu-0.5gb` costa circa 5 $/mese).
+- Accesso al pannello DNS del dominio `neetpiq.com`.
+- Diritti di amministratore sul repository GitHub `kingsor/UrlPreviewApp`.
+- Facoltativi: [`doctl`](https://docs.digitalocean.com/reference/doctl/how-to/install/) (`doctl auth init`) e [GitHub CLI](https://cli.github.com/) (`gh auth login`).
 
-I comandi qui sotto sono scritti per **bash** (Git Bash, WSL o Cloud Shell). In PowerShell scrivi le assegnazioni come `$RG = "rg-urlpreviewapp"` e usa il backtick (`` ` ``) al posto di `\` per andare a capo.
+## 2. Accesso di DigitalOcean al repository GitHub
 
-## 2. Variabili
+App Platform costruisce l'immagine clonando il repository, quindi deve poterlo leggere:
 
-Scegli i nomi una volta sola. `APP` deve essere univoco a livello globale, perché diventa `https://<APP>.azurewebsites.net`.
+1. Pannello DigitalOcean → **Apps → Create App → GitHub**.
+2. Se il repository non compare, clicca **Edit your GitHub permissions** / **Manage access** e autorizza la GitHub app di DigitalOcean su `kingsor/UrlPreviewApp`.
+3. Puoi chiudere la procedura guidata senza creare l'app: la crea il workflow.
+
+## 3. Token API e configurazione di GitHub
+
+1. Pannello DigitalOcean → **API → Tokens → Generate New Token**. Scopi: **Full access**, oppure custom con almeno `app` (create, read, update). Copia il token.
+2. Nel repository GitHub:
+   - **Settings → Environments → New environment** → `production` (facoltativo: *Required reviewers*, *Deployment branches* solo `main`).
+   - **Settings → Secrets and variables → Actions** → secret `DIGITALOCEAN_ACCESS_TOKEN` con il token.
+
+Con GitHub CLI:
 
 ```bash
-RG=rg-urlpreviewapp
-LOCATION=westeurope
-PLAN=plan-urlpreviewapp
-APP=urlpreviewapp-<suffisso-univoco>
-REPO=kingsor/UrlPreviewApp
-SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-TENANT_ID=$(az account show --query tenantId -o tsv)
+gh secret set DIGITALOCEAN_ACCESS_TOKEN -R kingsor/UrlPreviewApp
 ```
 
-## 3. Risorse Azure
+## 4. Primo deploy
 
 ```bash
-# Resource group
-az group create -n $RG -l $LOCATION
-
-# Piano App Service Linux (B1 ≈ 13 $/mese; F1 è gratuito ma senza Always On, con quote CPU e avvio lento a freddo)
-az appservice plan create -g $RG -n $PLAN --is-linux --sku B1
-
-# Verifica che il runtime .NET 10 sia disponibile
-az webapp list-runtimes --os linux --query "[?contains(@, 'DOTNETCORE')]"
-
-# Web app
-az webapp create -g $RG -p $PLAN -n $APP --runtime "DOTNETCORE:10.0"
-
-# Impostazioni di base
-az webapp update -g $RG -n $APP --https-only true
-az webapp config set -g $RG -n $APP --always-on true --http20-enabled true --ftps-state Disabled --min-tls-version 1.2
-```
-
-### App settings
-
-La configurazione dell'app è nella sezione `Preview` di `appsettings.json`. In Azure i valori si possono sovrascrivere con app settings nel formato `Sezione__Chiave`.
-
-```bash
-az webapp config appsettings set -g $RG -n $APP --settings \
-  ASPNETCORE_ENVIRONMENT=Production \
-  ASPNETCORE_FORWARDEDHEADERS_ENABLED=true \
-  Preview__RequestsPerMinute=30
-```
-
-- `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`: App Service mette davanti all'app un proxy. Con questa impostazione l'app vede il vero IP del client, che il **rate limit per IP** di `/api/metadata` usa come chiave. Sulle immagini Linux di solito è già attiva; impostarla esplicitamente non fa danni.
-- Altri override possibili: `Preview__TimeoutSeconds`, `Preview__MaxContentBytes`, `Preview__SiteChecksTimeoutSeconds`, `Preview__UserAgent`.
-- ⚠️ **Non impostare mai `Preview__AllowPrivateNetworks=true` in produzione**: disattiva la protezione SSRF (`NetworkGuard`) e permetterebbe di interrogare indirizzi interni di Azure, come `169.254.169.254`.
-
-## 4. Identità per GitHub Actions (OIDC)
-
-```bash
-# Registrazione dell'app e service principal
-CLIENT_ID=$(az ad app create --display-name "github-$APP" --query appId -o tsv)
-az ad sp create --id $CLIENT_ID
-
-# Permessi minimi: Website Contributor solo su questa web app
-WEBAPP_ID=$(az webapp show -g $RG -n $APP --query id -o tsv)
-az role assignment create --assignee $CLIENT_ID --role "Website Contributor" --scope $WEBAPP_ID
-
-# Credenziale federata: accetta solo token dei job che usano l'environment GitHub "production" di questo repository
-az ad app federated-credential create --id $CLIENT_ID --parameters "{
-  \"name\": \"github-production\",
-  \"issuer\": \"https://token.actions.githubusercontent.com\",
-  \"subject\": \"repo:$REPO:environment:production\",
-  \"audiences\": [\"api://AzureADTokenExchange\"]
-}"
-```
-
-> Il `subject` deve coincidere esattamente con l'environment usato dal job `deploy` (`environment: name: production`). Se rinomini l'environment o il repository, aggiorna la credenziale federata.
-
-## 5. Configurazione di GitHub
-
-### Environment
-
-In **Settings → Environments → New environment** crea `production`. Se vuoi, aggiungi:
-- **Required reviewers**, per approvare a mano ogni deploy;
-- **Deployment branches**: solo `main`.
-
-### Secrets e variabili
-
-| Tipo | Nome | Valore |
-|---|---|---|
-| Secret | `AZURE_CLIENT_ID` | `$CLIENT_ID` |
-| Secret | `AZURE_TENANT_ID` | `$TENANT_ID` |
-| Secret | `AZURE_SUBSCRIPTION_ID` | `$SUBSCRIPTION_ID` |
-| Variable | `AZURE_WEBAPP_NAME` | `$APP` |
-
-Puoi impostarli dalla UI (**Settings → Secrets and variables → Actions**) oppure con GitHub CLI:
-
-```bash
-gh secret set AZURE_CLIENT_ID       -R $REPO -b "$CLIENT_ID"
-gh secret set AZURE_TENANT_ID       -R $REPO -b "$TENANT_ID"
-gh secret set AZURE_SUBSCRIPTION_ID -R $REPO -b "$SUBSCRIPTION_ID"
-gh variable set AZURE_WEBAPP_NAME   -R $REPO -b "$APP"
-```
-
-Questi tre ID non sono credenziali, ma tenerli fra i secrets evita di esporli nei log.
-
-## 6. Il workflow
-
-Il file `.github/workflows/deploy.yml` si avvia con un **push su `main`** oppure a mano (**Actions → Deploy to Azure App Service → Run workflow**).
-
-| Job | Passaggi |
-|---|---|
-| `build` | `setup-dotnet` 10.0.x → `dotnet restore` → `build -c Release` → `dotnet test` → `dotnet publish src/UrlPreviewApp` → upload dell'artifact `webapp` |
-| `deploy` | download dell'artifact → `azure/login@v2` (OIDC) → `azure/webapps-deploy@v3` (zip deploy) |
-
-- Se un test fallisce, il deploy non parte.
-- `concurrency: deploy-production` mette in coda i deploy: due push ravvicinati non si sovrappongono.
-- Solo il job `deploy` ha il permesso `id-token: write`, che serve a ottenere il token OIDC.
-- La CI usa il pacchetto **NuGet** `UrlPreviewParser` (`UseLocalUrlPreviewParser=false` è il valore predefinito in `Directory.Build.props`), quindi il repository fratello `../UrlPreviewParser` non serve. Per aggiornare la libreria cambia `UrlPreviewParserVersion` in `Directory.Build.props` e pubblica prima quella versione su NuGet.
-
-## 7. Primo deploy e verifica
-
-```bash
-git add .github/workflows/deploy.yml deploy.md
-git commit -m "Add Azure App Service deployment workflow"
 git push origin main
 ```
 
-Per seguire la run: scheda **Actions** del repository, oppure `gh run watch -R $REPO`.
+Il job `deploy` usa `digitalocean/app_action/deploy@v2`: al primo run **crea** l'app `urlpreviewapp` da `.do/app.yaml`, ai run successivi la **aggiorna** con lo spec e attende la fine del deploy. Per seguire la run: scheda **Actions**, oppure `gh run watch -R kingsor/UrlPreviewApp`.
 
-Al termine:
+In alternativa, a mano:
 
 ```bash
-# Pagina principale (prerender)
-curl -I https://$APP.azurewebsites.net/
-
-# API
-curl "https://$APP.azurewebsites.net/api/metadata?url=github.com"
-
-# Log in tempo reale
-az webapp log config -g $RG -n $APP --docker-container-logging filesystem
-az webapp log tail -g $RG -n $APP
+doctl apps create --spec .do/app.yaml          # prima volta
+doctl apps list                                # recupera l'ID
+doctl apps update <app-id> --spec .do/app.yaml # modifiche allo spec
+doctl apps create-deployment <app-id>          # redeploy
 ```
 
-Prova anche il deep link `https://<APP>.azurewebsites.net/?url=github.com` e lo switch chiaro/scuro.
+Al termine l'app risponde subito su `https://urlpreviewapp-xxxxx.ondigitalocean.app` (lo trovi in **Apps → urlpreviewapp**, oppure `doctl apps get <app-id> --format DefaultIngress`).
 
-## 8. Note e risoluzione dei problemi
+## 5. Dominio urlpreview.neetpiq.com
+
+Il dominio è già dichiarato nello spec (`domains:`), quindi App Platform lo aspetta: manca solo il record DNS, perché `neetpiq.com` non è gestito da DigitalOcean.
+
+1. In **Apps → urlpreviewapp → Settings → Domains** controlla il valore indicato per `urlpreview.neetpiq.com` (è l'host `.ondigitalocean.app` dell'app).
+2. Nel pannello DNS di `neetpiq.com` crea:
+
+   | Tipo | Nome | Valore | TTL |
+   |---|---|---|---|
+   | `CNAME` | `urlpreview` | `urlpreviewapp-xxxxx.ondigitalocean.app.` | 3600 (o auto) |
+
+   - Se il DNS è su **Cloudflare**, imposta il record su **DNS only** (nuvola grigia): con il proxy attivo App Platform non riesce a validare il dominio e a emettere il certificato.
+   - Se esiste già un record `urlpreview` (A, AAAA o CNAME), rimuovilo.
+3. Attendi che lo stato del dominio diventi **Active**: App Platform emette e rinnova da solo il certificato TLS (Let's Encrypt). Di solito servono pochi minuti, a volte fino a un'ora per la propagazione DNS.
+
+Verifica la risoluzione:
+
+```bash
+nslookup urlpreview.neetpiq.com
+```
+
+## 6. Verifica
+
+```bash
+curl -I https://urlpreview.neetpiq.com/
+curl https://urlpreview.neetpiq.com/healthz
+curl "https://urlpreview.neetpiq.com/api/metadata?url=github.com"
+
+# Log
+doctl apps logs <app-id> web --type build
+doctl apps logs <app-id> web --type run --follow
+```
+
+Prova anche il deep link `https://urlpreview.neetpiq.com/?url=github.com` e lo switch chiaro/scuro.
+
+Prima del push puoi provare l'immagine in locale (serve Docker):
+
+```bash
+docker build -t urlpreviewapp .
+docker run --rm -p 8080:8080 urlpreviewapp
+curl http://localhost:8080/healthz
+```
+
+## 7. Configurazione
+
+La configurazione dell'app è nella sezione `Preview` di `appsettings.json`; si sovrascrive con variabili d'ambiente nel formato `Sezione__Chiave`, in `envs:` di `.do/app.yaml` (o da **Settings → App-Level / Component Environment Variables**, ma lo spec resta la fonte di verità: il workflow lo riapplica a ogni deploy).
+
+- `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`: App Platform termina TLS davanti al container. Così l'app vede il vero IP del client (usato come chiave dal **rate limit per IP** di `/api/metadata`) e lo schema `https`.
+- Altri override possibili: `Preview__TimeoutSeconds`, `Preview__MaxContentBytes`, `Preview__SiteChecksTimeoutSeconds`, `Preview__UserAgent`.
+- `instance_count: 1`: il rate limiter è in memoria, con più istanze ognuna avrebbe il suo contatore.
+- ⚠️ **Non impostare mai `Preview__AllowPrivateNetworks=true` in produzione**: disattiva la protezione SSRF (`NetworkGuard`).
+
+## 8. Risoluzione dei problemi
 
 | Problema | Causa / soluzione |
 |---|---|
-| `DOTNETCORE:10.0` non compare in `list-runtimes` | Il runtime non è ancora disponibile nella regione scelta: prova un'altra regione, oppure pubblica self-contained (`dotnet publish ... --self-contained -r linux-x64`) e imposta lo startup command `./UrlPreviewApp`. |
-| `azure/login` fallisce con `AADSTS70021` / *No matching federated identity record* | Il `subject` della credenziale federata non coincide: controlla il nome del repository e quello dell'environment (`production`). |
-| `403` / *AuthorizationFailed* durante il deploy | Manca l'assegnazione del ruolo `Website Contributor` sulla web app (le assegnazioni possono impiegare qualche minuto a propagarsi). |
-| Molte risposte `429` | Il rate limit è per IP (`Preview:RequestsPerMinute`). Se tutti gli utenti risultano con lo stesso IP, verifica `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`. |
-| Il primo caricamento è lento | Senza Always On (piano F1) l'app si spegne quando è inattiva. Usa B1 o superiore con `--always-on true`. |
-| Le anteprime di alcuni siti vanno in `504` | Il timeout verso i siti analizzati è `Preview:TimeoutSeconds` (15 s); aumentalo con un app setting, se serve. |
+| Il job `deploy` fallisce con *GitHub user does not have access* / *repository not found* | DigitalOcean non è autorizzato sul repository: vedi sezione 2. |
+| Il job `deploy` fallisce con `401` / *Unable to authenticate* | Secret `DIGITALOCEAN_ACCESS_TOKEN` assente, scaduto o senza lo scopo `app`. |
+| Build dell'immagine fallita | `doctl apps logs <app-id> web --type build`. Riproduci con `docker build .` in locale. |
+| Deploy bloccato su *health check failed* | L'app non risponde 200 su `/healthz` sulla porta 8080: controlla i log `--type run`. |
+| Dominio fermo su *Pending* / certificato non emesso | Il CNAME manca, punta al valore sbagliato o è proxato da Cloudflare (va su *DNS only*). |
+| Molte risposte `429` | Il rate limit è per IP (`Preview:RequestsPerMinute`). Se tutti gli utenti condividono lo stesso IP, il proxy non è riconosciuto: verifica `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`; in alternativa usa l'header `do-connecting-ip` come chiave del partitioner in `Program.cs`. |
+| Le anteprime di alcuni siti vanno in `504` | Il timeout verso i siti analizzati è `Preview:TimeoutSeconds` (15 s); aumentalo in `envs:`. |
+| Out of memory / riavvii | Passa a `instance_size_slug: apps-s-1vcpu-1gb`. |
 
-### Dominio personalizzato (facoltativo)
-
-```bash
-az webapp config hostname add -g $RG --webapp-name $APP --hostname www.example.com
-az webapp config ssl create -g $RG -n $APP --hostname www.example.com   # certificato gestito gratuito
-az webapp config ssl bind -g $RG -n $APP --certificate-thumbprint <thumbprint> --ssl-type SNI
-```
-
-Prima di eseguire questi comandi crea i record DNS (`CNAME` verso `<APP>.azurewebsites.net` e il `TXT asuid.www` con il verification ID della web app).
-
-### Alternativa: publish profile
-
-In alternativa a OIDC puoi scaricare il publish profile (`az webapp deployment list-publishing-profiles --xml`), salvarlo nel secret `AZURE_WEBAPP_PUBLISH_PROFILE` e passarlo a `azure/webapps-deploy` con `publish-profile:`. È **sconsigliato**: contiene credenziali a lunga scadenza, va ruotato a mano e richiede di abilitare l'autenticazione di base (SCM) sulla web app.
+La CI usa il pacchetto **NuGet** `UrlPreviewParser` (`UseLocalUrlPreviewParser=false`), quindi il repository fratello `../UrlPreviewParser` non serve. Per aggiornare la libreria cambia `UrlPreviewParserVersion` in `Directory.Build.props` e pubblica prima quella versione su NuGet.
 
 ### Rimozione
 
 ```bash
-az group delete -n $RG --yes
-az ad app delete --id $CLIENT_ID
+doctl apps delete <app-id>
 ```
+
+Poi elimina il record `CNAME urlpreview` dal DNS e il token API.

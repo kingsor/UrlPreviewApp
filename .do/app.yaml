@@ -1,0 +1,42 @@
+# DigitalOcean App Platform spec for UrlPreviewApp. See deploy.md.
+# Applied by .github/workflows/deploy.yml (digitalocean/app_action/deploy) after the tests pass,
+# or by hand: doctl apps create --spec .do/app.yaml / doctl apps update <app-id> --spec .do/app.yaml
+name: urlpreviewapp
+region: fra
+
+domains:
+  - domain: urlpreview.neetpiq.com
+    type: PRIMARY
+
+services:
+  - name: web
+    github:
+      repo: kingsor/UrlPreviewApp
+      branch: main
+      # Deploys are triggered by GitHub Actions only after build + tests succeed.
+      deploy_on_push: false
+    dockerfile_path: Dockerfile
+    http_port: 8080
+    # The rate limiter on /api/metadata is in memory: keep a single instance.
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    health_check:
+      http_path: /healthz
+    envs:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # App Platform terminates TLS: trust X-Forwarded-For / X-Forwarded-Proto
+      # (real client IP for the per-IP rate limit, https scheme for redirects).
+      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+        value: "true"
+      - key: Preview__RequestsPerMinute
+        value: "30"
+      # Never set Preview__AllowPrivateNetworks=true here: it disables the SSRF guard.
+
+ingress:
+  rules:
+    - component:
+        name: web
+      match:
+        path:
+          prefix: /
