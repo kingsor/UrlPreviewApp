@@ -41,3 +41,53 @@ jobs:
 
       - name: Test
         run: dotnet test --solution UrlPreviewApp.slnx -c Release --no-build
+
+  # Release PRs only (dev -> main, hotfix -> main): <Version> in Directory.Build.props must be a new,
+  # higher X.Y.Z than the latest vX.Y.Z tag. The tag itself is created by deploy.yml after the deploy.
+  version:
+    name: Version check
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # to post the "will be released as vX.Y.Z" comment
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0     # tags are needed for the comparison
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Check version
+        id: check
+        run: |
+          VERSION=$(dotnet msbuild src/UrlPreviewApp/UrlPreviewApp.csproj -getProperty:Version)
+          LATEST=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION, latest tag: ${LATEST:-none}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            MESSAGE="❌ \`<Version>\` in \`Directory.Build.props\` is \`$VERSION\`: expected \`X.Y.Z\`."
+          elif git rev-parse -q --verify "refs/tags/v$VERSION" > /dev/null; then
+            MESSAGE="❌ Tag \`v$VERSION\` already exists: bump \`<Version>\` in \`Directory.Build.props\` (on \`dev\`) before releasing."
+          elif [[ -n "$LATEST" && "$(printf '%s\n%s\n' "${LATEST#v}" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]]; then
+            MESSAGE="❌ Version \`$VERSION\` is lower than the latest tag \`$LATEST\`: bump \`<Version>\` in \`Directory.Build.props\`."
+          else
+            MESSAGE="🏷️ When merged and deployed, this release will be tagged **\`v$VERSION\`** (latest tag: \`${LATEST:-none}\`)."
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "$MESSAGE" >> "$GITHUB_STEP_SUMMARY"
+          { echo "message<<EOF"; echo "$MESSAGE"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+
+      - name: Comment on the PR
+        if: always() && steps.check.outputs.message != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MESSAGE: ${{ steps.check.outputs.message }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "$MESSAGE"
+
+      - name: Fail on invalid version
+        if: steps.check.outputs.ok != 'true'
+        run: exit 1

@@ -39,7 +39,10 @@
 
     <footer>
         <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-wrap align-center justify-space-between gap-4 py-4">
-            <span class="eyebrow eyebrow--as-written">@DateTime.UtcNow.Year © UrlPreviewApp</span>
+            <span class="eyebrow eyebrow--as-written">
+                @DateTime.UtcNow.Year © UrlPreviewApp
+                <a href="@ReleaseUrl" target="_blank" rel="noopener noreferrer" class="footer__version" aria-label="Release notes for version @AppVersion.Current (opens in a new tab)">v@(AppVersion.Current)</a>
+            </span>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Based on <MudLink Href="https://github.com/KartikLabhshetwar/linkpreview" Target="_blank" rel="noopener noreferrer" Color="Color.Inherit" Underline="Underline.Always">KartikLabhshetwar/linkpreview</MudLink> (MIT)
             </MudText>
@@ -55,6 +58,7 @@
 
 @code {
     private const string RepositoryUrl = "https://github.com/kingsor/UrlPreviewApp";
+    private static readonly string ReleaseUrl = $"{RepositoryUrl}/releases/tag/v{AppVersion.Current}";
 
     private MudThemeProvider? _themeProvider;
 
