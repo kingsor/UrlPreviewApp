@@ -87,7 +87,7 @@ app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapHealthChecks("/healthz");
+app.MapHealthEndpoint();
 app.MapMetadataEndpoint();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()

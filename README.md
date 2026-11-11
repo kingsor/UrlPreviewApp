@@ -89,6 +89,17 @@ hotfix/xyz  ──PR────────────────────
 - Urgent fixes: branch from `main`, PR into `main`, then merge `main` back into `dev`.
 - `ci.yml` builds and tests every PR to `dev`/`main` and every push to `dev`; `deploy.yml` runs only on `main`.
 
+### Releasing
+
+The app version lives in one place: `<Version>` in `Directory.Build.props` (shown in the footer,
+sent in the User-Agent, returned by `/healthz` as `{"status":"Healthy","version":"X.Y.Z"}`).
+
+1. Bump `<Version>` on `dev` (in a feature PR, or a `chore/release-X.Y.Z` PR).
+2. Open the PR `dev → main`. The **Version check** job fails if the version is not higher than the latest
+   `vX.Y.Z` tag, and comments on the PR with the tag the release will get.
+3. Merge it (merge commit). After a successful deploy, `deploy.yml` tags the commit `vX.Y.Z` and publishes
+   a GitHub Release with notes generated from the merged PRs.
+
 ## Differences from the original
 
 - Previews: one parametric component (`PlatformPreview` + `PlatformThemes`) instead of seven copies;

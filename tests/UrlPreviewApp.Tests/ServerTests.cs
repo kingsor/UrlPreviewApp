@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using UrlPreviewApp.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using UrlPreviewApp.Client.Models;
@@ -211,6 +213,32 @@ public class MetadataEndpointTests(WebApplicationFactory<Program> factory) : ICl
         var response = await client.GetAsync("/healthz", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal("Healthy", body.RootElement.GetProperty("status").GetString());
+        Assert.Equal(AppVersion.Current, body.RootElement.GetProperty("version").GetString());
+    }
+}
+
+public class AppVersionTests
+{
+    [Fact]
+    public void Current_IsPlainSemanticVersion()
+    {
+        Assert.Matches(@"^\d+\.\d+\.\d+$", AppVersion.Current);
+    }
+
+    [Fact]
+    public void Current_MatchesServerAssemblyVersion()
+    {
+        // Client and server get <Version> from the same Directory.Build.props.
+        var server = typeof(PreviewOptions).Assembly.GetName().Version!;
+        Assert.Equal(server.ToString(3), AppVersion.Current);
+    }
+
+    [Fact]
+    public void DefaultUserAgent_CarriesAppVersion()
+    {
+        Assert.Contains($"UrlPreviewApp/{AppVersion.Current};", new PreviewOptions().UserAgent);
     }
 }

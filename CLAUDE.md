@@ -25,6 +25,8 @@ dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreview
 
 Branch from `dev` (`feature/…`, `fix/…`, `chore/…`) and open PRs against `dev` (squash). Releases are PRs `dev → main` (merge commit), which trigger `deploy.yml`; `ci.yml` checks PRs to `dev`/`main`. Never commit directly to `dev` or `main`. Details in README "Branching".
 
+Versioning: `<Version>` in `Directory.Build.props` is the only source (informational version kept plain `X.Y.Z`); read it through `Client/AppVersion.cs` (`AppVersion.Current`), used by the footer, the default `PreviewOptions.UserAgent` and `/healthz` (`Endpoints/HealthEndpoint.cs`). A release PR to `main` must bump it (`ci.yml` job "Version check"); `deploy.yml` job "Tag & release" creates tag `vX.Y.Z` + GitHub Release after the deploy.
+
 ## Architecture
 
 Blazor Web App, render mode **InteractiveWebAssembly with prerendering** (set on `Routes`/`HeadOutlet` in `src/UrlPreviewApp/Components/App.razor`).

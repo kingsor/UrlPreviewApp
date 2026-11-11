@@ -1,3 +1,5 @@
+using UrlPreviewApp.Client;
+
 namespace UrlPreviewApp.Services;
 
 /// <summary>
@@ -25,5 +27,6 @@ public sealed class PreviewOptions
     /// <summary>Requests per minute allowed to <c>/api/metadata</c> for each client IP.</summary>
     public int RequestsPerMinute { get; set; } = 30;
 
-    public string UserAgent { get; set; } = "Mozilla/5.0 (compatible; UrlPreviewApp/1.0; +https://github.com/kingsor/UrlPreviewParser)";
+    /// <summary>Sent to analyzed sites; the default carries the app version (<see cref="AppVersion.Current" />).</summary>
+    public string UserAgent { get; set; } = $"Mozilla/5.0 (compatible; UrlPreviewApp/{AppVersion.Current}; +https://github.com/kingsor/UrlPreviewParser)";
 }
