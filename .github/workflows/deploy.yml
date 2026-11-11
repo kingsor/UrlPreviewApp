@@ -1,4 +1,5 @@
-# Build, test and deploy UrlPreviewApp to DigitalOcean App Platform on every push to main.
+# Build, test and deploy UrlPreviewApp to DigitalOcean App Platform on every push to main
+# (i.e. when a release PR dev -> main is merged), then tag the release vX.Y.Z. PR checks run in ci.yml.
 # App spec: .do/app.yaml. Setup (token, GitHub access, DNS): see deploy.md.
 name: Deploy to DigitalOcean App Platform
 
@@ -38,7 +39,7 @@ jobs:
         run: dotnet build UrlPreviewApp.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test UrlPreviewApp.slnx -c Release --no-build
+        run: dotnet test --solution UrlPreviewApp.slnx -c Release --no-build
 
   deploy:
     name: Deploy
@@ -55,3 +56,33 @@ jobs:
       - uses: digitalocean/app_action/deploy@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+  # After a successful deploy: tag the deployed commit vX.Y.Z (<Version> in Directory.Build.props)
+  # and publish a GitHub Release with notes generated from the PRs merged since the previous tag.
+  release:
+    name: Tag & release
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # to create the tag and the release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(dotnet msbuild src/UrlPreviewApp/UrlPreviewApp.csproj -getProperty:Version)
+          TAG="v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; then
+            echo "⚠️ Tag \`$TAG\` already exists: no new release created (bump \`<Version>\` for the next release)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          echo "🏷️ Released [\`$TAG\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG)." >> "$GITHUB_STEP_SUMMARY"

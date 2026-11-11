@@ -2,6 +2,16 @@
 
   <PropertyGroup>
     <!--
+      App version: the single source of truth (footer, User-Agent, /healthz, release tag vX.Y.Z).
+      Bump it before opening a release PR dev -> main; CI checks it is greater than the latest tag.
+    -->
+    <Version>1.0.1</Version>
+    <!-- Keep the informational version plain "X.Y.Z" (no "+<commit sha>"), identical in local, CI and Docker builds. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
       false = reference the UrlPreviewParser NuGet package ($(UrlPreviewParserVersion)) (default, used by CI and Docker)
       true  = reference the UrlPreviewParser sources in ..\UrlPreviewParser (sibling repo)
     -->

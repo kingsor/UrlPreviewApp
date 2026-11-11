@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 dotnet run --project src/UrlPreviewApp            # https://localhost:7110 (deep link: /?url=github.com)
 dotnet build UrlPreviewApp.slnx
-dotnet test UrlPreviewApp.slnx
-dotnet test UrlPreviewApp.slnx --filter "FullyQualifiedName~NetworkGuardTests"   # one class
-dotnet test UrlPreviewApp.slnx --filter "FullyQualifiedName~UrlNormalizerTests.TryNormalize_AcceptsWebUrls"  # one test
+dotnet test --solution UrlPreviewApp.slnx
+dotnet test --solution UrlPreviewApp.slnx --filter-class "*NetworkGuardTests"   # one class
+dotnet test --solution UrlPreviewApp.slnx --filter-method "*UrlNormalizerTests.TryNormalize_AcceptsWebUrls"  # one test
 dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreviewParser sources
 ```
 
@@ -20,6 +20,12 @@ dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreview
 `Directory.Build.props` switches how the server references the UrlPreviewParser library:
 - `UseLocalUrlPreviewParser=false` (default): NuGet `UrlPreviewParser` `$(UrlPreviewParserVersion)` (1.1.0). CI and the Dockerfile rely on this.
 - `true`: project reference to `..\UrlPreviewParser\src\UrlPreviewParser` (sibling repo).
+
+## Branching
+
+Branch from `dev` (`feature/…`, `fix/…`, `chore/…`) and open PRs against `dev` (squash). Releases are PRs `dev → main` (merge commit), which trigger `deploy.yml`; `ci.yml` checks PRs to `dev`/`main`. Never commit directly to `dev` or `main`. Details in README "Branching".
+
+Versioning: `<Version>` in `Directory.Build.props` is the only source (informational version kept plain `X.Y.Z`); read it through `Client/AppVersion.cs` (`AppVersion.Current`), used by the footer, the default `PreviewOptions.UserAgent` and `/healthz` (`Endpoints/HealthEndpoint.cs`). A release PR to `main` must bump it (`ci.yml` job "Version check"); `deploy.yml` job "Tag & release" creates tag `vX.Y.Z` + GitHub Release after the deploy.
 
 ## Architecture
 

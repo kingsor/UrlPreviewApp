@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using UrlPreviewApp.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using UrlPreviewApp.Client.Models;
@@ -104,7 +106,7 @@ public class MetadataServiceTests
             };
         });
 
-        var result = await service.GetMetadataAsync("example.com/page");
+        var result = await service.GetMetadataAsync("example.com/page", TestContext.Current.CancellationToken);
 
         Assert.NotNull(result.Metadata);
         Assert.Equal("Hello", result.Metadata.Title);
@@ -120,7 +122,7 @@ public class MetadataServiceTests
     {
         var service = CreateService(_ => throw new InvalidOperationException("No request expected"));
 
-        var result = await service.GetMetadataAsync("not a url");
+        var result = await service.GetMetadataAsync("not a url", TestContext.Current.CancellationToken);
 
         Assert.Null(result.Metadata);
         Assert.Equal(400, result.StatusCode);
@@ -131,7 +133,7 @@ public class MetadataServiceTests
     {
         var service = CreateService(_ => new HttpResponseMessage(HttpStatusCode.Forbidden));
 
-        var result = await service.GetMetadataAsync("https://example.com");
+        var result = await service.GetMetadataAsync("https://example.com", TestContext.Current.CancellationToken);
 
         Assert.Equal(502, result.StatusCode);
         Assert.Equal("The site responded with 403 Forbidden.", result.Error);
@@ -142,7 +144,7 @@ public class MetadataServiceTests
     {
         var service = CreateService(_ => throw new HttpRequestException("blocked", new BlockedAddressException("10.0.0.1")));
 
-        var result = await service.GetMetadataAsync("https://internal.example.com");
+        var result = await service.GetMetadataAsync("https://internal.example.com", TestContext.Current.CancellationToken);
 
         Assert.Equal(400, result.StatusCode);
         Assert.Contains("not allowed", result.Error);
@@ -180,10 +182,10 @@ public class MetadataEndpointTests(WebApplicationFactory<Program> factory) : ICl
     {
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/metadata?url=not%20a%20url");
+        var response = await client.GetAsync("/api/metadata?url=not%20a%20url", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var error = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ApiError);
+        var error = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ApiError, TestContext.Current.CancellationToken);
         Assert.Equal("Please enter a valid http(s) URL.", error!.Error);
     }
 
@@ -195,10 +197,10 @@ public class MetadataEndpointTests(WebApplicationFactory<Program> factory) : ICl
     {
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync($"/api/metadata?url={Uri.EscapeDataString(url)}");
+        var response = await client.GetAsync($"/api/metadata?url={Uri.EscapeDataString(url)}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var error = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ApiError);
+        var error = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ApiError, TestContext.Current.CancellationToken);
         Assert.Contains("not allowed", error!.Error);
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
     }
@@ -208,9 +210,35 @@ public class MetadataEndpointTests(WebApplicationFactory<Program> factory) : ICl
     {
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/healthz");
+        var response = await client.GetAsync("/healthz", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal("Healthy", body.RootElement.GetProperty("status").GetString());
+        Assert.Equal(AppVersion.Current, body.RootElement.GetProperty("version").GetString());
+    }
+}
+
+public class AppVersionTests
+{
+    [Fact]
+    public void Current_IsPlainSemanticVersion()
+    {
+        Assert.Matches(@"^\d+\.\d+\.\d+$", AppVersion.Current);
+    }
+
+    [Fact]
+    public void Current_MatchesServerAssemblyVersion()
+    {
+        // Client and server get <Version> from the same Directory.Build.props.
+        var server = typeof(PreviewOptions).Assembly.GetName().Version!;
+        Assert.Equal(server.ToString(3), AppVersion.Current);
+    }
+
+    [Fact]
+    public void DefaultUserAgent_CarriesAppVersion()
+    {
+        Assert.Contains($"UrlPreviewApp/{AppVersion.Current};", new PreviewOptions().UserAgent);
     }
 }

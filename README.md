@@ -17,7 +17,7 @@ dotnet run --project src/UrlPreviewApp
 Open https://localhost:7110. Deep links work too: `https://localhost:7110/?url=github.com`.
 
 ```bash
-dotnet test UrlPreviewApp.slnx
+dotnet test --solution UrlPreviewApp.slnx
 ```
 
 ## Architecture
@@ -74,6 +74,31 @@ dotnet build -p:UseLocalUrlPreviewParser=true
 Every push to `main` is built and tested by GitHub Actions and, if the tests pass, deployed to
 DigitalOcean App Platform (Docker image from `Dockerfile`, app spec in `.do/app.yaml`) at
 https://urlpreview.neetpiq.com. Setup and troubleshooting: [deploy.md](deploy.md) (Italian).
+
+## Branching
+
+```
+feature/xyz ──PR (squash)──▶ dev ──PR "Release vX.Y.Z" (merge commit)──▶ main ──▶ deploy
+hotfix/xyz  ──PR──────────────────────────────────────────────────────▶ main ──▶ merge main into dev
+```
+
+- Work happens on short-lived branches cut from `dev` (`feature/…`, `fix/…`, `chore/…`), merged into
+  `dev` with a **squash** PR. No direct commits to `dev` or `main`.
+- A release is a PR `dev → main` merged with a **merge commit** (not squash, so `dev` and `main` don't
+  diverge); optionally tag it `vX.Y.Z`. Merging it triggers the deploy.
+- Urgent fixes: branch from `main`, PR into `main`, then merge `main` back into `dev`.
+- `ci.yml` builds and tests every PR to `dev`/`main` and every push to `dev`; `deploy.yml` runs only on `main`.
+
+### Releasing
+
+The app version lives in one place: `<Version>` in `Directory.Build.props` (shown in the footer,
+sent in the User-Agent, returned by `/healthz` as `{"status":"Healthy","version":"X.Y.Z"}`).
+
+1. Bump `<Version>` on `dev` (in a feature PR, or a `chore/release-X.Y.Z` PR).
+2. Open the PR `dev → main`. The **Version check** job fails if the version is not higher than the latest
+   `vX.Y.Z` tag, and comments on the PR with the tag the release will get.
+3. Merge it (merge commit). After a successful deploy, `deploy.yml` tags the commit `vX.Y.Z` and publishes
+   a GitHub Release with notes generated from the merged PRs.
 
 ## Differences from the original
 

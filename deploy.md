@@ -13,7 +13,7 @@ git push main ──► GitHub Actions
 |---|---|
 | [`Dockerfile`](Dockerfile) | Immagine multi-stage: SDK .NET 10 per `dotnet publish`, runtime `aspnet:10.0`, utente non root, porta 8080. |
 | [`.do/app.yaml`](.do/app.yaml) | App spec: regione, servizio, porta, health check `/healthz`, variabili d'ambiente, dominio. |
-| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | CI (build + test) e, se passa, deploy su App Platform. |
+| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | CI (build + test) e, se passa, deploy su App Platform; dopo il deploy crea il tag `vX.Y.Z` e la GitHub Release (versione da `Directory.Build.props`). |
 
 L'app è un host ASP.NET Core: serve il client Blazor WebAssembly (con prerendering) ed espone `GET /api/metadata`, quindi serve un **servizio** (container) e non uno static site. App Platform non ha un buildpack .NET 10, per questo si usa il Dockerfile.
 
@@ -93,7 +93,7 @@ nslookup urlpreview.neetpiq.com
 
 ```bash
 curl -I https://urlpreview.neetpiq.com/
-curl https://urlpreview.neetpiq.com/healthz
+curl https://urlpreview.neetpiq.com/healthz   # {"status":"Healthy","version":"X.Y.Z"}: la versione in produzione
 curl "https://urlpreview.neetpiq.com/api/metadata?url=github.com"
 
 # Log
