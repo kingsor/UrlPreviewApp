@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 dotnet run --project src/UrlPreviewApp            # https://localhost:7110 (deep link: /?url=github.com)
 dotnet build UrlPreviewApp.slnx
-dotnet test UrlPreviewApp.slnx
-dotnet test UrlPreviewApp.slnx --filter "FullyQualifiedName~NetworkGuardTests"   # one class
-dotnet test UrlPreviewApp.slnx --filter "FullyQualifiedName~UrlNormalizerTests.TryNormalize_AcceptsWebUrls"  # one test
+dotnet test --solution UrlPreviewApp.slnx
+dotnet test --solution UrlPreviewApp.slnx --filter-class "*NetworkGuardTests"   # one class
+dotnet test --solution UrlPreviewApp.slnx --filter-method "*UrlNormalizerTests.TryNormalize_AcceptsWebUrls"  # one test
 dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreviewParser sources
 ```
 
