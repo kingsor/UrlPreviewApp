@@ -40,4 +40,4 @@ jobs:
         run: dotnet build UrlPreviewApp.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test --solution UrlPreviewApp.slnx -c Release --no-build
+        run: dotnet test UrlPreviewApp.slnx -c Release --no-build
