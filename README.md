@@ -75,6 +75,20 @@ Every push to `main` is built and tested by GitHub Actions and, if the tests pas
 DigitalOcean App Platform (Docker image from `Dockerfile`, app spec in `.do/app.yaml`) at
 https://urlpreview.neetpiq.com. Setup and troubleshooting: [deploy.md](deploy.md) (Italian).
 
+## Branching
+
+```
+feature/xyz ──PR (squash)──▶ dev ──PR "Release vX.Y.Z" (merge commit)──▶ main ──▶ deploy
+hotfix/xyz  ──PR──────────────────────────────────────────────────────▶ main ──▶ merge main into dev
+```
+
+- Work happens on short-lived branches cut from `dev` (`feature/…`, `fix/…`, `chore/…`), merged into
+  `dev` with a **squash** PR. No direct commits to `dev` or `main`.
+- A release is a PR `dev → main` merged with a **merge commit** (not squash, so `dev` and `main` don't
+  diverge); optionally tag it `vX.Y.Z`. Merging it triggers the deploy.
+- Urgent fixes: branch from `main`, PR into `main`, then merge `main` back into `dev`.
+- `ci.yml` builds and tests every PR to `dev`/`main` and every push to `dev`; `deploy.yml` runs only on `main`.
+
 ## Differences from the original
 
 - Previews: one parametric component (`PlatformPreview` + `PlatformThemes`) instead of seven copies;
