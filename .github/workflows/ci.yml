@@ -1,0 +1,43 @@
+# Build and test (no deploy) on every PR to dev/main and on every push to dev.
+# Deploy happens only in deploy.yml, when a release PR (dev -> main) is merged.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # UseLocalUrlPreviewParser defaults to false: UrlPreviewParser comes from NuGet, no sibling repo needed.
+      - name: Restore
+        run: dotnet restore UrlPreviewApp.slnx
+
+      - name: Build
+        run: dotnet build UrlPreviewApp.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test UrlPreviewApp.slnx -c Release --no-build

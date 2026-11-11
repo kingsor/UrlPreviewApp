@@ -21,6 +21,10 @@ dotnet build -p:UseLocalUrlPreviewParser=true      # build against ../UrlPreview
 - `UseLocalUrlPreviewParser=false` (default): NuGet `UrlPreviewParser` `$(UrlPreviewParserVersion)` (1.1.0). CI and the Dockerfile rely on this.
 - `true`: project reference to `..\UrlPreviewParser\src\UrlPreviewParser` (sibling repo).
 
+## Branching
+
+Branch from `dev` (`feature/…`, `fix/…`, `chore/…`) and open PRs against `dev` (squash). Releases are PRs `dev → main` (merge commit), which trigger `deploy.yml`; `ci.yml` checks PRs to `dev`/`main`. Never commit directly to `dev` or `main`. Details in README "Branching".
+
 ## Architecture
 
 Blazor Web App, render mode **InteractiveWebAssembly with prerendering** (set on `Routes`/`HeadOutlet` in `src/UrlPreviewApp/Components/App.razor`).

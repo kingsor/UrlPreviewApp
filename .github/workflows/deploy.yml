@@ -1,4 +1,5 @@
-# Build, test and deploy UrlPreviewApp to DigitalOcean App Platform on every push to main.
+# Build, test and deploy UrlPreviewApp to DigitalOcean App Platform on every push to main
+# (i.e. when a release PR dev -> main is merged). PR checks run in ci.yml.
 # App spec: .do/app.yaml. Setup (token, GitHub access, DNS): see deploy.md.
 name: Deploy to DigitalOcean App Platform
 
