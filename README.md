@@ -17,7 +17,7 @@ dotnet run --project src/UrlPreviewApp
 Open https://localhost:7110. Deep links work too: `https://localhost:7110/?url=github.com`.
 
 ```bash
-dotnet test UrlPreviewApp.slnx
+dotnet test --solution UrlPreviewApp.slnx
 ```
 
 ## Architecture
